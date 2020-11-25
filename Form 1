@@ -1,0 +1,409 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Data.SqlClient;
+using System.Net;
+using System.Net.Sockets;
+
+namespace Server_Monitoring_Software
+{
+
+    public partial class Form1 : Form
+    {
+
+
+        Form1 f1;
+
+        public bool IsOpen;
+
+        Boolean Online = false;
+        Boolean Displayed_Name = true;
+        string ServerName, DataBaseName;
+        int ID = 0;
+        
+        public Form1()
+        {
+            InitializeComponent();
+            this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
+            
+
+
+        }
+
+
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+
+        {
+
+            IsOpen = false;
+
+        }
+        public static string GetLocalIPAddress()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily.ToString() == "InterNetwork")
+                {
+                    return ip.ToString();
+             
+                }
+            }
+            throw new Exception("No network adapters with an IPv4 address in the system!");
+        }
+
+        private void TextBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // TODO: This line of code loads data into the 'updateTableDataSet.SQLLUpdateDataBaseTest' table. You can move, or remove it, as needed.
+            try
+            {
+                this.iPDataTableAdapter.Fill(this.iPDataDataSet.IPData);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Server is down!");
+                System.Windows.Forms.Application.Exit();
+            }
+        }
+        
+        
+            static void ExecuteClient()
+        {
+
+            try
+            {
+
+                // Establish the remote endpoint  
+                // for the socket. This example  
+                // uses port 11111 on the local  
+                // computer. 
+                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                IPAddress ipAddr = ipHost.AddressList[0];
+                IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
+
+                // Creation TCP/IP Socket using  
+                // Socket Class Costructor 
+                Socket sender = new Socket(ipAddr.AddressFamily,
+                           SocketType.Stream, ProtocolType.Tcp);
+
+                try
+                {
+
+                    // Connect Socket to the remote  
+                    // endpoint using method Connect() 
+                    sender.Connect(localEndPoint);
+
+                    // We print EndPoint information  
+                    // that we are connected 
+                    Console.WriteLine("Socket connected to -> {0} ",
+                                  sender.RemoteEndPoint.ToString());
+
+                    // Creation of messagge that 
+                    // we will send to Server 
+                    byte[] messageSent = Encoding.ASCII.GetBytes("Test Client<EOF>");
+                    int byteSent = sender.Send(messageSent);
+
+                    // Data buffer 
+                    byte[] messageReceived = new byte[1024];
+
+                    // We receive the messagge using  
+                    // the method Receive(). This  
+                    // method returns number of bytes 
+                    // received, that we'll use to  
+                    // convert them to string 
+                    int byteRecv = sender.Receive(messageReceived);
+                    Console.WriteLine("Message from Server -> {0}",
+                          Encoding.ASCII.GetString(messageReceived,
+                                                     0, byteRecv));
+
+                    // Close Socket using  
+                    // the method Close() 
+                    sender.Shutdown(SocketShutdown.Both);
+                    sender.Close();
+                }
+
+                // Manage of Socket's Exceptions 
+                catch (ArgumentNullException ane)
+                {
+
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+
+                catch (SocketException se)
+                {
+
+                    Console.WriteLine("SocketException : {0}", se.ToString());
+                }
+
+                catch (Exception e)
+                {
+                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                }
+            }
+
+            catch (Exception e)
+            {
+
+                Console.WriteLine(e.ToString());
+            }
+        }
+  
+private void IPDataDataGridView_CellContentClick_2(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+
+
+        private void SQLLUpdateDataBaseTestDataGridView_CellContentClick_1(object sender, DataGridViewCellEventArgs e)
+        {
+
+
+        }
+        private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            
+        }
+        private void Button2_Click(object sender, EventArgs e)
+        {
+            this.sQLLUpdateDataBaseTestTableAdapter.Update(this.updateTableDataSet.SQLLUpdateDataBaseTest);
+            
+            this.tableAdapterManager.UpdateAll(this.iPDataDataSet);
+            using (SqlConnection sc = new SqlConnection())
+            {
+                sc.ConnectionString = @"Data Source=25.90.11.104,1433;Initial Catalog=" + DataBaseName + ";User Id=Admin;Password =Password";
+                sc.Open();
+
+                using (SqlCommand com = sc.CreateCommand())
+                {
+                    com.CommandText = "UPDATE SQLLUpdateDataBaseTest SET LastUpdated = GETDATE() WHERE ID=ID";
+                    int RowsAffected1 = com.ExecuteNonQuery();
+                    com.Dispose();
+                }
+            }
+        }
+
+        private void IPDataBindingNavigatorSaveItem_Click(object sender, EventArgs e)
+        {
+            this.Validate();
+            this.iPDataBindingSource.EndEdit();
+            this.tableAdapterManager.UpdateAll(this.iPDataDataSet);
+
+        }
+        
+        private void SQLLUpdateDataBaseTestDataGridView_CellContentClick_2(object sender, DataGridViewCellEventArgs e)
+        {
+            
+            
+            
+            using (SqlConnection sc = new SqlConnection())
+            {
+                sc.ConnectionString = @"Data Source=25.90.11.104,1433;Initial Catalog=" + DataBaseName + ";User Id=Admin;Password =Password";
+                sc.Open();
+                
+                using (SqlCommand com = sc.CreateCommand())
+                {
+                    foreach (DataRow row in updateTableDataSet.Tables[0].Rows)
+                    {
+                        row["ID"] = "IDColumn";
+                        row["Opportunity ID"] = "OpportunityIDColumn";
+
+                    }
+                    com.CommandText = "UPDATE SQLLUpdateDataBaseTest SET (ID, Opportunity ID, Forecast Category)VALUES(@ID, @Opportunity ID, @Forecast Category)";
+                    com.Parameters.Add("@ID", SqlDbType.VarChar, 8, "IDColumn");
+                    com.Parameters.Add("@Opportunity ID", SqlDbType.VarChar, 8, "OpportunityIDColumn");
+                    com.Parameters.Add("@Forecast Category", SqlDbType.VarChar, 8, "Forecast Category");
+                    
+                    int RowsAffected = com.ExecuteNonQuery();
+                    com.Dispose();
+                }
+            }
+        }
+        private void AcceptOrReject(DataRow row)
+        {
+            // Use a function to validate the row's values.
+            // If the function returns true, end the edit;
+            // otherwise cancel it.
+            if (ValidateRow(row))
+                row.EndEdit();
+            else
+                row.CancelEdit(); 
+        }
+        private bool ValidateRow(DataRow thisRow)
+        {
+            bool isValid = true;
+            // Insert code to validate the row values. 
+            // Set the isValid variable.
+            return isValid;
+        }
+        private void IPDataDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            this.iPDataTableAdapter.Update(this.iPDataDataSet.IPData);
+            this.iPDataTableAdapter.Fill(this.iPDataDataSet.IPData);
+        }
+
+        private void Button3_Click(object sender, EventArgs e)
+        {
+
+        }
+            
+        private void IPDataDataGridView_CellContentClick_1(object sender, DataGridViewCellEventArgs e)
+        {
+           
+        }
+
+        private void SQLLUpdateDataBaseTestDataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            DataGridViewColumn column = sQLLUpdateDataBaseTestDataGridView.Columns[e.ColumnIndex];
+            if (column.Name == "ID")
+            {
+                UpdateStuff();
+            }
+        }
+        private void UpdateStuff()
+        {
+            object myDate = sQLLUpdateDataBaseTestDataGridView.CurrentCell.Value;
+            
+        }
+
+        private void SQLLUpdateDataBaseTestDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void IPDataBindingNavigator_RefreshItems(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Button1_Click(object sender, EventArgs e)
+        {
+            ExecuteClient();
+            
+            string OverHaul, Output = "";
+            SqlCommand commandsqll, Overcommandsqll;
+            SqlDataReader dataReader;
+            ServerName = ""; 
+            DataBaseName = "HPE_Data";
+            ID = ID + 1;
+            string Table = " ";
+            SqlConnection ServerConnection;
+
+
+            try
+            {
+                string ServerconnetionString = @"Data Source=25.90.11.104,1433;Initial Catalog=" + DataBaseName + ";User Id=Admin;Password =Password";
+                //Forwarding the HPE Data
+                ServerConnection = new SqlConnection(ServerconnetionString);
+                ServerConnection.Open();
+
+                OverHaul = "Select * from IPData";
+                string MaxIDString = "Select max( ID )from IPData";
+                commandsqll = new SqlCommand(MaxIDString, ServerConnection);
+                Overcommandsqll = new SqlCommand(OverHaul, ServerConnection);
+                String UserName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+                Online = !Online;
+                var host = Dns.GetHostEntry(Dns.GetHostName());
+
+
+                dataReader = commandsqll.ExecuteReader();
+
+                if (dataReader.Read())
+
+                {
+
+                    Output = Output + "Connection:Open" + "\n"
+                    + "Current User:" + UserName + "\n"
+                    + "Local Machine's Host Name: " + GetLocalIPAddress();
+                    string IP = GetLocalIPAddress();
+
+
+                    if (textBox1.Text.Contains(GetLocalIPAddress()) == false)
+                    {
+                        textBox1.Text = textBox1.Text + "\r\n" + "Current Users IP:" + GetLocalIPAddress();
+
+                    }
+                }
+                MessageBox.Show(Output);
+
+                string IDLength = dataReader[0].ToString();
+                int IDlengthCalc = Convert.ToInt32(IDLength) + 1;
+
+                dataReader.Close();
+                commandsqll.Dispose();
+
+                ServerConnection = new SqlConnection(ServerconnetionString);
+
+                string ConnectionTypeDescript = "";
+                this.iPDataTableAdapter.Update(this.iPDataDataSet.IPData);
+                this.iPDataTableAdapter.Update(this.iPDataDataSet.IPData);
+                using (SqlConnection sc = new SqlConnection())
+                {
+                    sc.ConnectionString = @"Data Source=25.90.11.104,1433;Initial Catalog=" + DataBaseName + ";User Id=Admin;Password =Password";
+                    sc.Open();
+
+                    using (SqlCommand com = sc.CreateCommand())
+                    {
+
+                        if (Online == false)
+                        {
+
+                            button2.Visible = true;
+                            sQLLUpdateDataBaseTestDataGridView.Visible = true;
+                            button1.Text = "Disconnect From Server";
+                            ConnectionTypeDescript = "Entered";
+                            com.CommandText = "INSERT INTO IPData (ID, Login_Creds, IP_Adresses,Joined,ConnectionType) VALUES(@IDString ,@LoginString, @IPString,GETDATE(),@ConnectionTypeDescript)";
+                            com.Parameters.Add("@IDString", SqlDbType.Int).Value = IDlengthCalc;
+                            com.Parameters.Add("@LoginString", SqlDbType.VarChar, 10).Value = UserName;
+                            com.Parameters.Add("@IPString", SqlDbType.Text).Value = GetLocalIPAddress();
+                            com.Parameters.Add("@ConnectionTypeDescript", SqlDbType.Text).Value = ConnectionTypeDescript;
+                            int RowsAffected = com.ExecuteNonQuery();
+                            com.Dispose();
+                            this.sQLLUpdateDataBaseTestTableAdapter.Update(this.updateTableDataSet.SQLLUpdateDataBaseTest);
+                            this.sQLLUpdateDataBaseTestTableAdapter.Fill(this.updateTableDataSet.SQLLUpdateDataBaseTest);
+                        }
+                        if (Online == true)
+                        {
+
+                            button2.Visible = false;
+                            sQLLUpdateDataBaseTestDataGridView.Visible = false;
+                            button1.Text = "Connect To Server";
+                            ConnectionTypeDescript = "Leffgt";
+                            com.CommandText = "UPDATE    IPData SET LeftServer = GETDATE() WHERE Login_Creds=@LoginString AND ID=@IDCalString";
+                            com.Parameters.Add("@IDCalString", SqlDbType.Int).Value = IDlengthCalc - 1;
+                            com.Parameters.Add("@LoginString", SqlDbType.VarChar, 10).Value = UserName;
+
+                            int RowsAffected = com.ExecuteNonQuery();
+                            com.Dispose();
+                            com.CommandText = "INSERT INTO Decom SELECT *,* FROM IPData where Decommissioned=Y";
+                            com.ExecuteNonQuery();
+                            com.Dispose();
+                        }
+
+                    }
+                }
+                Displayed_Name = false;
+                // TODO: This line of code loads data into the 'updateTableDataSet.SQLLUpdateDataBaseTest' table. You can move, or remove it, as needed.
+
+                // TODO: This line of code loads data into the 'iPDataDataSet.IPData' table. You can move, or remove it, as needed.
+                this.iPDataTableAdapter.Fill(this.iPDataDataSet.IPData);
+            }
+            catch (Exception)
+            {
+              
+            }
+        }
+    }
+}
